@@ -1,6 +1,6 @@
---- content/public/common/content_features.cc.orig	2026-04-09 06:05:42 UTC
+--- content/public/common/content_features.cc.orig	2026-04-14 21:31:37 UTC
 +++ content/public/common/content_features.cc
-@@ -140,7 +140,7 @@ BASE_FEATURE(kAudioServiceLaunchOnStartup, base::FEATU
+@@ -140,7 +140,7 @@ BASE_FEATURE(kAudioServiceOutOfProcess,
  
  // Runs the audio service in a separate process.
  BASE_FEATURE(kAudioServiceOutOfProcess,
@@ -9,7 +9,16 @@
               base::FEATURE_ENABLED_BY_DEFAULT
  #else
               base::FEATURE_DISABLED_BY_DEFAULT
-@@ -1159,10 +1159,10 @@ BASE_FEATURE(kWebAssemblyTiering, base::FEATURE_ENABLE
+@@ -150,7 +150,7 @@ BASE_FEATURE(kAudioServiceSandbox,
+ // Enables the audio-service sandbox. This feature has an effect only when the
+ // kAudioServiceOutOfProcess feature is enabled.
+ BASE_FEATURE(kAudioServiceSandbox,
+-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_FUCHSIA)
++#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_FUCHSIA) || BUILDFLAG(IS_FREEBSD)
+              base::FEATURE_ENABLED_BY_DEFAULT
+ #else
+              base::FEATURE_DISABLED_BY_DEFAULT
+@@ -1159,10 +1159,10 @@ BASE_FEATURE(kWebAssemblyTrapHandler,
  
  // Enable WebAssembly trap handler.
  BASE_FEATURE(kWebAssemblyTrapHandler,
