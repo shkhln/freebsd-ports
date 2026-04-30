@@ -56,12 +56,8 @@
    sandbox::SetAmZygoteOrRenderer(true, GetSandboxFD());
  
    auto* linux_sandbox = sandbox::policy::SandboxLinux::GetInstance();
-@@ -172,9 +180,10 @@ bool ZygoteMain(
-       !base::CommandLine::ForCurrentProcess()->HasSwitch(
-           sandbox::policy::switches::kNoZygoteSandbox)) {
-     // This will pre-initialize the various sandboxes that need it.
--    linux_sandbox->PreinitializeSandbox();
-+    linux_sandbox->PreinitializeSandbox(sandbox::mojom::Sandbox::kNoSandbox);
+@@ -175,6 +183,7 @@ bool ZygoteMain(
+     linux_sandbox->PreinitializeSandbox();
    }
  
 +#if !BUILDFLAG(IS_FREEBSD)

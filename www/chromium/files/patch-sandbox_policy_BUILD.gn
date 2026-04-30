@@ -1,4 +1,4 @@
---- sandbox/policy/BUILD.gn.orig	2025-12-05 10:12:50 UTC
+--- sandbox/policy/BUILD.gn.orig	2026-02-17 23:34:34 UTC
 +++ sandbox/policy/BUILD.gn
 @@ -46,7 +46,7 @@ component("policy") {
        "//third_party/jni_zero",
@@ -9,7 +9,7 @@
      sources += [
        "linux/bpf_audio_policy_linux.cc",
        "linux/bpf_audio_policy_linux.h",
-@@ -116,6 +116,26 @@ component("policy") {
+@@ -116,6 +116,33 @@ component("policy") {
        "//sandbox/linux:sandbox_services",
        "//sandbox/linux:seccomp_bpf",
        "//sandbox/linux:suid_sandbox_client",
@@ -24,8 +24,15 @@
 +  }
 +  if (is_freebsd) {
 +    sources += [
++      "freebsd/interceptors.cc",
++      "freebsd/interceptors.h",
 +      "freebsd/sandbox_freebsd.cc",
 +      "freebsd/sandbox_freebsd.h",
++    ]
++    libs = [
++      "casper",
++      "cap_net",
++      "cap_sysctl",
 +    ]
 +  }
 +  if (is_bsd) {
