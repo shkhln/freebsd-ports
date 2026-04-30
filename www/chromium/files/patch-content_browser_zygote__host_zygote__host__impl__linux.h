@@ -1,4 +1,4 @@
---- content/browser/zygote_host/zygote_host_impl_linux.h.orig	2025-02-19 07:43:18 UTC
+--- content/browser/zygote_host/zygote_host_impl_linux.h.orig	2026-02-17 23:34:34 UTC
 +++ content/browser/zygote_host/zygote_host_impl_linux.h
 @@ -46,12 +46,14 @@ class CONTENT_EXPORT ZygoteHostImpl : public ZygoteHos
                       base::ScopedFD* control_fd,
@@ -19,7 +19,7 @@
  
    int renderer_sandbox_status_;
  
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    bool use_namespace_sandbox_;
    bool use_suid_sandbox_;
    bool use_suid_sandbox_for_adj_oom_score_;

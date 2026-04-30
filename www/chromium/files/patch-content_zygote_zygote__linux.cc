@@ -4,10 +4,65 @@
  // Copyright 2012 The Chromium Authors
  // Use of this source code is governed by a BSD-style license that can be
  // found in the LICENSE file.
-+#if 0
++#if __FreeBSD__
  
  #include "content/zygote/zygote_linux.h"
  
+@@ -50,7 +51,9 @@
+ #include "ipc/ipc_channel.h"
+ #include "sandbox/linux/services/credentials.h"
+ #include "sandbox/linux/services/namespace_sandbox.h"
++#if !BUILDFLAG(IS_BSD)
+ #include "sandbox/policy/linux/sandbox_linux.h"
++#endif
+ #include "sandbox/policy/sandbox.h"
+ #include "third_party/icu/source/i18n/unicode/timezone.h"
+ 
+@@ -428,6 +431,7 @@ int Zygote::ForkWithRealPid(const std::string& process
+     CHECK_NE(pid, 0);
+   } else {
+     PCHECK(base::CreatePipe(&read_pipe, &write_pipe));
++#if !BUILDFLAG(IS_FREEBSD)
+     if (sandbox_flags_ & sandbox::policy::SandboxLinux::kPIDNS &&
+         sandbox_flags_ & sandbox::policy::SandboxLinux::kUserNS) {
+       pid = sandbox::NamespaceSandbox::ForkInNewPidNamespace(
+@@ -435,11 +439,15 @@ int Zygote::ForkWithRealPid(const std::string& process
+     } else {
+       pid = sandbox::Credentials::ForkAndDropCapabilitiesInChild();
+     }
++#else
++    pid = fork();
++#endif
+   }
+ 
+   if (pid == 0) {
+     // In the child process.
+ 
++#if !BUILDFLAG(IS_FREEBSD)
+     // If the process is the init process inside a PID namespace, it must have
+     // explicit signal handlers.
+     if (getpid() == 1) {
+@@ -450,6 +458,7 @@ int Zygote::ForkWithRealPid(const std::string& process
+             sig, sandbox::NamespaceSandbox::SignalExitCode(sig));
+       }
+     }
++#endif
+ 
+     write_pipe.reset();
+ 
+@@ -510,6 +519,12 @@ int Zygote::ForkWithRealPid(const std::string& process
+     }
+   }
+ 
++#if BUILDFLAG(IS_FREEBSD)
++  // FreeBSD has no PID namespaces to worry about.
++  CHECK_EQ(real_pid, -1);
++  real_pid = pid;
++#endif
++
+   // If we successfully forked a child, but it crashed without sending
+   // a message to the browser, the browser won't have found its PID.
+   if (real_pid < 0) {
 @@ -714,3 +715,4 @@ void Zygote::HandleReinitializeLoggingRequest(base::Pi
  }
  

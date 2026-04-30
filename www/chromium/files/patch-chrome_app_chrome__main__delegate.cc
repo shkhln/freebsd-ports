@@ -62,7 +62,7 @@
  #endif  // BUILDFLAG(IS_LINUX)
  
 -#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID)
-+#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_OPENBSD)
  void SIGTERMProfilingShutdown(int signal) {
    content::Profiling::Stop();
    struct sigaction sigact;
@@ -120,3 +120,24 @@
    // Zygote needs to call InitCrashReporter() in RunZygote().
    if (process_type != switches::kZygoteProcess &&
        !command_line.HasSwitch(switches::kDisableCrashpadForTesting)) {
+@@ -1577,7 +1577,7 @@ void ChromeMainDelegate::ProcessExiting(const std::str
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ }
+ 
+-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_FREEBSD)
+ void ChromeMainDelegate::ZygoteStarting(
+     std::vector<std::unique_ptr<content::ZygoteForkDelegate>>* delegates) {
+ }
+@@ -1598,9 +1598,11 @@ void ChromeMainDelegate::ZygoteForked() {
+       base::CommandLine::ForCurrentProcess();
+   std::string process_type =
+       command_line->GetSwitchValueASCII(switches::kProcessType);
++#if !BUILDFLAG(IS_BSD)
+   crash_reporter::InitializeCrashpad(false, process_type);
+   crash_reporter::SetFirstChanceExceptionHandler(
+       v8::TryHandleWebAssemblyTrapPosix);
++#endif
+ 
+   // Reset the command line for the newly spawned process.
+   crash_keys::SetCrashKeysFromCommandLine(*command_line);
