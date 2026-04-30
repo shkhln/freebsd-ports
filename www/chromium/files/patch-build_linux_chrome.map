@@ -1,4 +1,4 @@
---- build/linux/chrome.map.orig	2022-02-28 16:54:41 UTC
+--- build/linux/chrome.map.orig	2026-02-17 23:34:34 UTC
 +++ build/linux/chrome.map
 @@ -20,6 +20,10 @@ global:
    # Program entry point.
@@ -11,3 +11,41 @@
    # Memory allocation symbols.  We want chrome and any libraries to
    # share the same heap, so it is correct to export these symbols.
    aligned_alloc;
+@@ -89,6 +93,37 @@ global:
+   # uses dlsym(getaddrinfo) to make the real calls in unsandboxed
+   # processes.
+   getaddrinfo;
++
++  # FreeBSD overrides
++  access;
++  connect;
++  connectat;
++  creat;
++  dlopen;
++  faccessat;
++  fopen;
++  fstatat;
++  lstat;
++  mkdir;
++  mkdirat;
++  mkostempsat;
++  mkstemp;
++  open;
++  openat;
++  opendir;
++  pathconf;
++  realpath;
++  rename;
++  rmdir;
++  scandir;
++  scandirat;
++  select;
++  stat;
++  statfs;
++  sysctl;
++  sysctlbyname;
++  unlink;
++  unlinkat;
+ 
+   v8dbg_*;
+ 
