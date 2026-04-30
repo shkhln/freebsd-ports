@@ -5,7 +5,7 @@
  #include "content/public/common/content_descriptors.h"
  
 -#if !BUILDFLAG(IS_MAC)
-+#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_OPENBSD)
  #include "content/public/common/zygote/zygote_fork_delegate_linux.h"
  #endif
  
@@ -36,6 +36,39 @@
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/background_thread_pool_field_trial.h"
  #include "base/system/sys_info.h"
+@@ -206,6 +213,32 @@
+ #include "base/debug/asan_service.h"
+ #endif
+ 
++#if BUILDFLAG(IS_FREEBSD)
++
++#if __has_cpp_attribute(clang::no_builtin)
++#define NO_MEMCPY [[clang::no_builtin("memcpy")]]
++#elif __has_cpp_attribute(gnu::optimize)
++#define NO_MEMCPY [[gnu::optimize(0)]]
++#endif
++
++extern long __stack_chk_guard[8];
++
++namespace base {
++
++// See lib/libc/secure/stack_protector.c.
++NO_STACK_PROTECTOR NO_MEMCPY void ResetStackCanaryIfPossible() {
++  long tmp[nitems(__stack_chk_guard)];
++  base::RandBytes(base::byte_span_from_ref(tmp));
++  for (unsigned int i = 0; i < nitems(__stack_chk_guard); i++) {
++    __stack_chk_guard[i] = tmp[i]; tmp[i] = 0;
++  }
++}
++
++void SetStackSmashingEmitsDebugMessage() {}
++
++} // namespace base
++#endif
++
+ namespace content {
+ extern int GpuMain(MainFunctionParams);
+ extern int RendererMain(MainFunctionParams);
 @@ -368,7 +375,7 @@ void InitializeZygoteSandboxForBrowserProcess(
  }
  #endif  // BUILDFLAG(USE_ZYGOTE)
@@ -119,7 +152,7 @@
      CHECK(sandbox::Seatbelt::IsSandboxed());
    }
 -#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
-+#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_BSD)
++#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_FREEBSD)
    // In sandboxed processes and zygotes, certain resource should be pre-warmed
    // as they cannot be initialized under a sandbox. In addition, loading these
    // resources in zygotes (including the unsandboxed zygote) allows them to be
@@ -127,7 +160,7 @@
    ChildProcessEnterSandbox();
  #endif
  
-+#if BUILDFLAG(IS_BSD)
++#if BUILDFLAG(IS_OPENBSD)
 +  if (process_type.empty()) {
 +    sandbox::policy::SandboxLinux::Options sandbox_options;
 +    sandbox::policy::SandboxLinux::GetInstance()->InitializeSandbox(
