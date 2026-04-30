@@ -9,7 +9,7 @@
      sources += [
        "linux/bpf_audio_policy_linux.cc",
        "linux/bpf_audio_policy_linux.h",
-@@ -114,6 +114,26 @@ component("policy") {
+@@ -114,6 +114,33 @@ component("policy") {
        "//sandbox/linux:sandbox_services",
        "//sandbox/linux:seccomp_bpf",
        "//sandbox/linux:suid_sandbox_client",
@@ -24,8 +24,15 @@
 +  }
 +  if (is_freebsd) {
 +    sources += [
++      "freebsd/interceptors.cc",
++      "freebsd/interceptors.h",
 +      "freebsd/sandbox_freebsd.cc",
 +      "freebsd/sandbox_freebsd.h",
++    ]
++    libs = [
++      "casper",
++      "cap_net",
++      "cap_sysctl",
 +    ]
 +  }
 +  if (is_bsd) {
