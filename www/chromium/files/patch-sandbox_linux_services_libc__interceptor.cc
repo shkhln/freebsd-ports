@@ -1,4 +1,4 @@
---- sandbox/linux/services/libc_interceptor.cc.orig	2026-01-14 08:33:23 UTC
+--- sandbox/linux/services/libc_interceptor.cc.orig	2026-02-17 23:34:34 UTC
 +++ sandbox/linux/services/libc_interceptor.cc
 @@ -12,7 +12,9 @@
  #include <stddef.h>
@@ -19,3 +19,18 @@
    }
  
    return true;
+@@ -351,10 +353,14 @@ __attribute__((__visibility__("default"))) struct tm* 
+ __attribute__((__visibility__("default"))) struct tm* localtime_r_override(
+     const time_t* timep,
+     struct tm* result) {
++// Capsicum doesn't forbid localtime_r and ProxyLocaltimeCallToBrowser somehow
++// results in a deadlock on the logger init with zygotes, so we'll just skip it.
++#if !BUILDFLAG(IS_FREEBSD)
+   if (g_am_zygote_or_renderer) {
+     ProxyLocaltimeCallToBrowser(*timep, result, nullptr, 0);
+     return result;
+   }
++#endif
+ 
+   InitLibcLocaltimeFunctions();
+   struct tm* res = g_libc_localtime_r(timep, result);
