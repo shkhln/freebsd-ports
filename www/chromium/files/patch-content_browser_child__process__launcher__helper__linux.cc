@@ -14,7 +14,7 @@
  }
  
  bool ChildProcessLauncherHelper::IsUsingLaunchOptions() {
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    return !GetZygoteForLaunch();
 +#else
 +  return true;
@@ -25,7 +25,7 @@
      PosixFileDescriptorInfo& files_to_register,
      base::LaunchOptions* options) {
    if (options) {
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
      DCHECK(!GetZygoteForLaunch());
 +#endif
      // Convert FD mapping to FileHandleMappingVector
@@ -35,7 +35,7 @@
  
      options->environment = delegate_->GetEnvironment();
    } else {
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
      DCHECK(GetZygoteForLaunch());
 +#endif
      // Environment variables could be supported in the future, but are not
@@ -45,24 +45,20 @@
      int* launch_result) {
    *is_synchronous_launch = true;
    Process process;
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    ZygoteCommunication* zygote_handle = GetZygoteForLaunch();
    if (zygote_handle) {
      // TODO(crbug.com/40448989): If chrome supported multiple zygotes they could
-@@ -94,7 +105,6 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThr
+@@ -94,7 +105,7 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThr
          GetProcessType());
      *launch_result = LAUNCH_RESULT_SUCCESS;
  
 -#if !BUILDFLAG(IS_OPENBSD)
++#if !BUILDFLAG(IS_FREEBSD)
      if (handle) {
        // It could be a renderer process or an utility process.
        int oom_score = content::kMiscOomScore;
-@@ -103,15 +113,17 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThr
-         oom_score = content::kLowestRendererOomScore;
-       ZygoteHostImpl::GetInstance()->AdjustRendererOOMScore(handle, oom_score);
-     }
--#endif
- 
+@@ -107,10 +118,13 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThr
      process.process = base::Process(handle);
      process.zygote = zygote_handle;
    } else {
@@ -70,7 +66,7 @@
      process.process = base::LaunchProcess(*command_line(), *options);
      *launch_result = process.process.IsValid() ? LAUNCH_RESULT_SUCCESS
                                                 : LAUNCH_RESULT_FAILURE;
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    }
 +#endif
  
@@ -80,7 +76,7 @@
      const ChildProcessLauncherHelper::Process& process,
      bool known_dead) {
    ChildProcessTerminationInfo info;
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    if (process.zygote) {
      info.status = process.zygote->GetTerminationStatus(
          process.process.Handle(), known_dead, &info.exit_code);
@@ -95,7 +91,7 @@
    DCHECK(CurrentlyOnProcessLauncherTaskRunner());
    process.process.Terminate(RESULT_CODE_NORMAL_EXIT, false);
    // On POSIX, we must additionally reap the child.
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    if (process.zygote) {
      // If the renderer was created via a zygote, we have to proxy the reaping
      // through the zygote process.
@@ -103,7 +99,7 @@
    } else {
 +#endif
      base::EnsureProcessTerminated(std::move(process.process));
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    }
 +#endif
  }
@@ -113,7 +109,7 @@
    }
  }
  
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
  ZygoteCommunication* ChildProcessLauncherHelper::GetZygoteForLaunch() {
    return base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kNoZygote)
               ? nullptr

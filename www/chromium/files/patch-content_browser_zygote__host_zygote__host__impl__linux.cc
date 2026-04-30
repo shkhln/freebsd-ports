@@ -31,7 +31,7 @@
  }
  
  ZygoteHostImpl::ZygoteHostImpl()
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
      : use_namespace_sandbox_(false),
        use_suid_sandbox_(false),
        use_suid_sandbox_for_adj_oom_score_(false),
@@ -61,11 +61,48 @@
      base::CommandLine* cmd_line,
      base::ScopedFD* control_fd,
      base::FileHandleMappingVector additional_remapped_fds) {
-+#if !BUILDFLAG(IS_BSD)
++#if !BUILDFLAG(IS_OPENBSD)
    int fds[2];
    CHECK_EQ(0, socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, fds));
    CHECK(base::UnixDomainSocket::EnableReceiveProcessId(fds[0]));
-@@ -251,9 +262,12 @@ pid_t ZygoteHostImpl::LaunchZygote(
+@@ -175,6 +186,7 @@ pid_t ZygoteHostImpl::LaunchZygote(
+       !cmd_line->HasSwitch(sandbox::policy::switches::kNoZygoteSandbox);
+ 
+   base::ScopedFD dummy_fd;
++#if !BUILDFLAG(IS_FREEBSD)
+   if (is_sandboxed_zygote && use_suid_sandbox_) {
+     std::unique_ptr<sandbox::SetuidSandboxHost> sandbox_host(
+         sandbox::SetuidSandboxHost::Create());
+@@ -182,11 +194,16 @@ pid_t ZygoteHostImpl::LaunchZygote(
+     sandbox_host->SetupLaunchOptions(&options, &dummy_fd);
+     sandbox_host->SetupLaunchEnvironment();
+   }
++#endif
+ 
+   base::Process process =
++#if !BUILDFLAG(IS_FREEBSD)
+       (is_sandboxed_zygote && use_namespace_sandbox_)
+           ? sandbox::NamespaceSandbox::LaunchProcess(*cmd_line, options)
+           : base::LaunchProcess(*cmd_line, options);
++#else
++      base::LaunchProcess(*cmd_line, options);
++#endif
+   CHECK(process.IsValid()) << "Failed to launch zygote process";
+ 
+   dummy_fd.reset();
+@@ -195,6 +212,7 @@ pid_t ZygoteHostImpl::LaunchZygote(
+ 
+   pid_t pid = process.Pid();
+ 
++#if !BUILDFLAG(IS_FREEBSD)
+   if (is_sandboxed_zygote && (use_namespace_sandbox_ || use_suid_sandbox_)) {
+     // The namespace and SUID sandbox will execute the zygote in a new
+     // PID namespace, and the main zygote process will then fork from
+@@ -227,12 +245,16 @@ pid_t ZygoteHostImpl::LaunchZygote(
+     }
+     pid = real_pid;
+   }
++#endif
  
    AddZygotePid(pid);
    return pid;
