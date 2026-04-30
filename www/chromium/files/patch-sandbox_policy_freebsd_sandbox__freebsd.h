@@ -1,6 +1,6 @@
---- sandbox/policy/freebsd/sandbox_freebsd.h.orig	2024-11-14 07:57:23 UTC
+--- sandbox/policy/freebsd/sandbox_freebsd.h.orig	2026-02-23 06:40:08 UTC
 +++ sandbox/policy/freebsd/sandbox_freebsd.h
-@@ -0,0 +1,276 @@
+@@ -0,0 +1,194 @@
 +// Copyright (c) 2012 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -122,9 +122,6 @@
 +  SandboxLinux(const SandboxLinux&) = delete;
 +  SandboxLinux& operator=(const SandboxLinux&) = delete;
 +
-+  bool SetPledge(const char *pstring, const char *ppath);
-+  bool SetUnveil(const std::string process_type, sandbox::mojom::Sandbox sandbox_type);
-+
 +  // Do some initialization that can only be done before any of the sandboxes
 +  // are enabled. If using the setuid sandbox, this should be called manually
 +  // before the setuid sandbox is engaged.
@@ -134,19 +131,7 @@
 +  // Otherwise file descriptors that bypass the security of the setuid sandbox
 +  // would be kept open. One must be particularly careful if a process performs
 +  // a fork().
-+  void PreinitializeSandbox(sandbox::mojom::Sandbox sandbox_type);
-+
-+  // Check that the current process is the init process of a new PID
-+  // namespace and then proceed to drop access to the file system by using
-+  // a new unprivileged namespace. This is a layer-1 sandbox.
-+  // In order for this sandbox to be effective, it must be "sealed" by calling
-+  // InitializeSandbox().
-+  void EngageNamespaceSandbox(bool from_zygote);
-+
-+  // Return a list of file descriptors to close if PreinitializeSandbox() ran
-+  // but InitializeSandbox() won't. Avoid using.
-+  // TODO(jln): get rid of this hack.
-+  std::vector<int> GetFileDescriptorsToClose();
++  void PreinitializeSandbox();
 +
 +  // Seal an eventual layer-1 sandbox and initialize the layer-2 sandbox with
 +  // an adequate policy depending on the process type and command line
@@ -173,57 +158,15 @@
 +  // of threads cannot be determined.
 +  bool IsSingleThreaded() const;
 +
-+  // Returns true if we started Seccomp BPF.
-+  bool seccomp_bpf_started() const;
-+
-+  // Check the policy and eventually start the seccomp-bpf sandbox. This should
-+  // never be called with threads started. If we detect that threads have
-+  // started we will crash.
-+  bool StartSeccompBPF(sandbox::mojom::Sandbox sandbox_type,
-+                       PreSandboxHook hook,
-+                       const Options& options);
-+
 +  // Limit the address space of the current process (and its children) to make
 +  // some vulnerabilities harder to exploit. Writes the errno due to setrlimit
 +  // (including 0 if no error) into |error|.
 +  bool LimitAddressSpace(int* error);
 +
-+  // Returns a file descriptor to proc. The file descriptor is no longer valid
-+  // after the sandbox has been sealed.
-+  int proc_fd() const {
-+    DCHECK_NE(-1, proc_fd_);
-+    return proc_fd_;
-+  }
-+
 +#if BUILDFLAG(USING_SANITIZER)
 +  __sanitizer_sandbox_arguments* sanitizer_args() const {
 +    return sanitizer_args_.get();
 +  };
-+#endif
-+
-+  // A BrokerProcess is a helper that is started before the sandbox is engaged,
-+  // typically from a pre-sandbox hook, that will serve requests to access
-+  // files over an IPC channel. The client  of this runs from a SIGSYS handler
-+  // triggered by the seccomp-bpf sandbox.
-+  // |client_sandbox_policy| is the policy being run by the client, and is
-+  // used to derive the equivalent broker-side policy.
-+  // |broker_side_hook| is an alternate pre-sandbox hook to be run before the
-+  // broker itself gets sandboxed, to which the broker side policy and
-+  // |options| are passed.
-+  // Crashes the process if the broker can not be started since continuation
-+  // is impossible (and presumably unsafe).
-+  // This should never be destroyed, as after the sandbox is started it is
-+  // vital to the process.
-+#if 0
-+  void StartBrokerProcess(
-+      const sandbox::syscall_broker::BrokerCommandSet& allowed_command_set,
-+      std::vector<sandbox::syscall_broker::BrokerFilePermission> permissions,
-+      PreSandboxHook broker_side_hook,
-+      const Options& options);
-+
-+  sandbox::syscall_broker::BrokerProcess* broker_process() const {
-+    return broker_process_;
-+  }
 +#endif
 +
 + private:
@@ -232,46 +175,21 @@
 +  SandboxLinux();
 +  ~SandboxLinux();
 +
-+  // We must have been pre_initialized_ before using these.
-+  bool seccomp_bpf_supported() const;
-+  bool seccomp_bpf_with_tsync_supported() const;
-+
-+  // Returns true if it can be determined that the current process has open
-+  // directories that are not managed by the SandboxLinux class. This would
-+  // be a vulnerability as it would allow to bypass the setuid sandbox.
-+  bool HasOpenDirectories() const;
-+
-+  // The last part of the initialization is to make sure any temporary "hole"
-+  // in the sandbox is closed. For now, this consists of closing proc_fd_.
-+  void SealSandbox();
-+
-+  // GetStatus() makes promises as to how the sandbox will behave. This
-+  // checks that no promises have been broken.
-+  void CheckForBrokenPromises(sandbox::mojom::Sandbox sandbox_type);
-+
-+  // Stop |thread| and make sure it does not appear in /proc/self/tasks/
-+  // anymore.
-+  void StopThreadAndEnsureNotCounted(base::Thread* thread) const;
-+
-+  // A file descriptor to /proc. It's dangerous to have it around as it could
-+  // allow for sandbox bypasses. It needs to be closed before we consider
-+  // ourselves sandboxed.
-+  int proc_fd_;
-+
-+  bool seccomp_bpf_started_;
-+  // The value returned by GetStatus(). Gets computed once and then cached.
-+  int sandbox_status_flags_;
 +  // Did PreinitializeSandbox() run?
 +  bool pre_initialized_;
-+  bool seccomp_bpf_supported_;             // Accurate if pre_initialized_.
-+  bool seccomp_bpf_with_tsync_supported_;  // Accurate if pre_initialized_.
-+  bool yama_is_enforcing_;                 // Accurate if pre_initialized_.
 +  bool initialize_sandbox_ran_;            // InitializeSandbox() was called.
 +#if BUILDFLAG(USING_SANITIZER)
 +  std::unique_ptr<__sanitizer_sandbox_arguments> sanitizer_args_;
 +#endif
-+  sandbox::syscall_broker::BrokerProcess* broker_process_;  // Leaked as global.
 +};
++
++struct HookData {
++  void* parent_cap_sysctl_chan;
++  void* child_cap_sysctl_chan;
++};
++
++HookData ZygotePreForkHook(std::vector<std::string> args);
++void ZygotePostForkHook(int child_pid, const HookData& hook_data);
 +
 +}  // namespace policy
 +}  // namespace sandbox

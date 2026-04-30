@@ -63,6 +63,29 @@
    // If we successfully forked a child, but it crashed without sending
    // a message to the browser, the browser won't have found its PID.
    if (real_pid < 0) {
+@@ -589,6 +604,10 @@ base::ProcessId Zygote::ReadArgsAndFork(base::PickleIt
+ 
+   mapping.push_back(ipc_backchannel_);
+ 
++#if BUILDFLAG(IS_FREEBSD)
++  auto hook_data = sandbox::policy::ZygotePreForkHook(args);
++#endif
++
+   // Returns at most twice: once with a valid PID (in the parent process,
+   // returning the PID of the new child); and optionally once with a zero PID
+   // in the forked child process. Note that a delegate may spawn the child
+@@ -633,6 +652,11 @@ base::ProcessId Zygote::ReadArgsAndFork(base::PickleIt
+     LOG(ERROR) << "Zygote could not fork: process_type " << process_type
+                << " numfds " << numfds << " child_pid " << child_pid;
+   }
++
++#if BUILDFLAG(IS_FREEBSD)
++  sandbox::policy::ZygotePostForkHook(child_pid, hook_data);
++#endif
++
+   return child_pid;
+ }
+ 
 @@ -714,3 +715,4 @@ void Zygote::HandleReinitializeLoggingRequest(base::Pi
  }
  
