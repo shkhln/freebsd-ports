@@ -26,7 +26,7 @@ CONFIG_ARGS=	--disable-static --disable-mix --disable-usbstream \
 		--disable-arcamav --disable-jack --disable-pulseaudio \
 		--disable-samplerate --disable-libav --disable-a52 \
 		--disable-lavrate --disable-speexdsp --with-speex=no
-CPPFLAGS+=	-DFREEBSD_OSS -DFREEBSD_OSS_USE_IO_PTR
+CPPFLAGS+=	-DFREEBSD_OSS
 CFLAGS+=	--sysroot=${LINUXBASE}
 COMPAT32_CFLAGS_amd64=	-m32
 LIBDIR_aarch64=	/usr/lib64
