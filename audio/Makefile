@@ -125,6 +125,7 @@
     SUBDIR += dtmfdial
     SUBDIR += dumb
     SUBDIR += dumb-allegro
+    SUBDIR += easyeffects
     SUBDIR += easytag
     SUBDIR += eawpats
     SUBDIR += eawplus
