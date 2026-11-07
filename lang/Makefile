@@ -48,6 +48,7 @@
     SUBDIR += cparser
     SUBDIR += crumb
     SUBDIR += crystal
+    SUBDIR += cuda
     SUBDIR += cython
     SUBDIR += dart
     SUBDIR += dhall
